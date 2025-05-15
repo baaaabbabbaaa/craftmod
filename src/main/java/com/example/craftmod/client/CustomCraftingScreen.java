@@ -1,8 +1,11 @@
 package com.example.craftmod.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.util.text.StringTextComponent;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,23 +18,57 @@ public class CustomCraftingScreen extends Screen {
 
     private static final int ENTRIES_PER_PAGE = 6;
 
+    private int craftAmount = 1;
+    private Button minusButton;
+    private Button plusButton;
+    private Button craftButton;
+    private TextFieldWidget amountInput;
+
     public CustomCraftingScreen() {
         super(new StringTextComponent("カスタムクラフト"));
     }
 
     @Override
     protected void init() {
-        dummyRecipes.clear();
-        dummyRecipes.add("弓");
-        dummyRecipes.add("木の剣");
-        dummyRecipes.add("石のつるはし");
-        dummyRecipes.add("かまど");
-        dummyRecipes.add("ベッド");
-        dummyRecipes.add("トーチ");
-        dummyRecipes.add("ドア");
-        dummyRecipes.add("階段");
-        dummyRecipes.add("チェスト");
+        // ダミーレシピ（省略）
+
+        int rightX = this.width * 3 / 5;
+        int y = 80;
+
+        // 数値入力欄
+        amountInput = new TextFieldWidget(this.font, rightX + 40, y, 30, 20, StringTextComponent.EMPTY);
+        amountInput.setValue("1");
+        amountInput.setResponder(val -> {
+            try {
+                int n = Integer.parseInt(val);
+                craftAmount = Math.max(1, Math.min(n, 99));
+            } catch (NumberFormatException e) {
+                craftAmount = 1;
+            }
+        });
+        this.addButton(amountInput);
+
+        // ＋ ボタン
+        plusButton = new Button(rightX + 75, y, 20, 20, new StringTextComponent("+"), b -> {
+            craftAmount = Math.min(craftAmount + 1, 99);
+            amountInput.setValue(String.valueOf(craftAmount));
+        });
+        this.addButton(plusButton);
+
+        // − ボタン
+        minusButton = new Button(rightX + 10, y, 20, 20, new StringTextComponent("-"), b -> {
+            craftAmount = Math.max(craftAmount - 1, 1);
+            amountInput.setValue(String.valueOf(craftAmount));
+        });
+        this.addButton(minusButton);
+
+        // 作成するボタン（今は動作しない）
+        craftButton = new Button(rightX + 10, y + 30, 80, 20, new StringTextComponent("作成する"), b -> {
+            // TODO: 次ステップで素材消費＋アイテム作成処理
+        });
+        this.addButton(craftButton);
     }
+
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
@@ -85,6 +122,8 @@ public class CustomCraftingScreen extends Screen {
         if (selectedIndex >= 0 && selectedIndex < dummyRecipes.size()) {
             String selected = dummyRecipes.get(selectedIndex);
             drawString(matrixStack, font, "選択中: " + selected, rightX, 40, 0xFFFF00);
+            drawString(matrixStack, font, "素材: 糸 0/3  棒 13/3", rightX, 60, 0xFFFFFF);
+            drawString(matrixStack, font, "制作個数: ", rightX, 85, 0xFFFFFF);
         }
 
         super.render(matrixStack, mouseX, mouseY, partialTicks);
