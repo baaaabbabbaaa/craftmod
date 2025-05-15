@@ -4,7 +4,12 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.item.Items;
+import net.minecraft.item.Item;
+import java.util.Map;
+import java.util.HashMap;
 
 
 import java.util.ArrayList;
@@ -23,6 +28,8 @@ public class CustomCraftingScreen extends Screen {
     private Button plusButton;
     private Button craftButton;
     private TextFieldWidget amountInput;
+
+    private final Map<Item, Integer> requiredMaterials = new HashMap<>();
 
     public CustomCraftingScreen() {
         super(new StringTextComponent("カスタムクラフト"));
@@ -64,9 +71,53 @@ public class CustomCraftingScreen extends Screen {
 
         // 作成するボタン（今は動作しない）
         craftButton = new Button(rightX + 10, y + 30, 80, 20, new StringTextComponent("作成する"), b -> {
-            // TODO: 次ステップで素材消費＋アイテム作成処理
+            boolean canCraft = true;
+
+            // 素材足りてるかチェック
+            for (Map.Entry<Item, Integer> entry : requiredMaterials.entrySet()) {
+                Item item = entry.getKey();
+                int required = entry.getValue() * craftAmount;
+                int owned = minecraft.player.inventory.countItem(item);
+                if (owned < required) {
+                    canCraft = false;
+                    break;
+                }
+            }
+
+            if (!canCraft) {
+                minecraft.player.displayClientMessage(new StringTextComponent("素材が足りません！"), true);
+                return;
+            }
+
+            // 素材消費処理
+            for (Map.Entry<Item, Integer> entry : requiredMaterials.entrySet()) {
+                Item item = entry.getKey();
+                int toRemove = entry.getValue() * craftAmount;
+
+                for (int i = 0; i < minecraft.player.inventory.getContainerSize(); i++) {
+                    if (toRemove <= 0) break;
+                    ItemStack stack = minecraft.player.inventory.getItem(i);
+                    if (stack.getItem() == item) {
+                        int remove = Math.min(stack.getCount(), toRemove);
+                        stack.shrink(remove);
+                        toRemove -= remove;
+                    }
+                }
+            }
+
+            // 完成品追加（弓）
+            ItemStack result = new ItemStack(Items.BOW, craftAmount);
+            minecraft.player.inventory.add(result);
+
+            // 成功メッセージ
+            minecraft.player.displayClientMessage(new StringTextComponent("弓を " + craftAmount + " 個作成しました！"), true);
         });
+
         this.addButton(craftButton);
+
+        requiredMaterials.clear();
+        requiredMaterials.put(Items.STRING, 3);
+        requiredMaterials.put(Items.STICK, 3);
     }
 
 
@@ -122,8 +173,20 @@ public class CustomCraftingScreen extends Screen {
         if (selectedIndex >= 0 && selectedIndex < dummyRecipes.size()) {
             String selected = dummyRecipes.get(selectedIndex);
             drawString(matrixStack, font, "選択中: " + selected, rightX, 40, 0xFFFF00);
-            drawString(matrixStack, font, "素材: 糸 0/3  棒 13/3", rightX, 60, 0xFFFFFF);
-            drawString(matrixStack, font, "制作個数: ", rightX, 85, 0xFFFFFF);
+
+            int y = 60;
+            for (Map.Entry<Item, Integer> entry : requiredMaterials.entrySet()) {
+                Item item = entry.getKey();
+                int required = entry.getValue() * craftAmount;
+                int owned = minecraft.player.inventory.countItem(item);
+
+                int color = owned >= required ? 0x00FF00 : 0xFF4444;
+                font.draw(matrixStack,
+                        new ItemStack(item).getHoverName().getString() + " " + owned + "/" + required,
+                        rightX, y, color
+                );
+                y += 12;
+            }
         }
 
         super.render(matrixStack, mouseX, mouseY, partialTicks);
