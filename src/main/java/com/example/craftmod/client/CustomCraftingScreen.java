@@ -3,8 +3,17 @@ package com.example.craftmod.client;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.ITextComponent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CustomCraftingScreen extends Screen {
+
+    // 仮レシピリスト
+    private final List<String> dummyRecipes = new ArrayList<>();
+    private int scrollOffset = 0;
+    private static final int ENTRIES_PER_PAGE = 6; // 表示するレシピ数
 
     public CustomCraftingScreen() {
         super(new StringTextComponent("カスタムクラフト"));
@@ -12,13 +21,45 @@ public class CustomCraftingScreen extends Screen {
 
     @Override
     protected void init() {
-        // 初期化（今は空）
+        // 仮のレシピ名を追加
+        dummyRecipes.clear();
+        dummyRecipes.add("弓");
+        dummyRecipes.add("木の剣");
+        dummyRecipes.add("石のつるはし");
+        dummyRecipes.add("かまど");
+        dummyRecipes.add("ベッド");
+        dummyRecipes.add("トーチ");
+        dummyRecipes.add("ドア");
+        dummyRecipes.add("階段");
+        dummyRecipes.add("チェスト");
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollDelta) {
+        int maxScroll = Math.max(0, dummyRecipes.size() - ENTRIES_PER_PAGE);
+        scrollOffset -= (int) Math.signum(scrollDelta); // 上下スクロール
+        scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
+        return true;
     }
 
     @Override
     public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         this.renderBackground(matrixStack);
-        drawCenteredString(matrixStack, this.font, "カスタムクラフト画面", this.width / 2, 20, 0xFFFFFF);
+
+        drawCenteredString(matrixStack, font, "カスタムクラフト画面", this.width / 2, 10, 0xFFFFFF);
+
+        // 左側にレシピを表示
+        int startX = this.width / 4;
+        int startY = 40;
+
+        for (int i = 0; i < ENTRIES_PER_PAGE; i++) {
+            int recipeIndex = i + scrollOffset;
+            if (recipeIndex >= dummyRecipes.size()) break;
+
+            String name = dummyRecipes.get(recipeIndex);
+            drawString(matrixStack, font, "- " + name, startX, startY + i * 20, 0xFFFFFF);
+        }
+
         super.render(matrixStack, mouseX, mouseY, partialTicks);
     }
 }
