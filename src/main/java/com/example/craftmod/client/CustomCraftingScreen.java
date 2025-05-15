@@ -38,6 +38,12 @@ public class CustomCraftingScreen extends Screen {
     @Override
     protected void init() {
         // ダミーレシピ（省略）
+        dummyRecipes.clear();
+        dummyRecipes.add("弓");
+        dummyRecipes.add("木の剣");
+        dummyRecipes.add("石のつるはし");
+        dummyRecipes.add("ベッド");
+        dummyRecipes.add("トーチ");
 
         int rightX = this.width * 3 / 5;
         int y = 80;
